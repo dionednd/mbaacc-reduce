@@ -7,20 +7,24 @@
 #
 #	v0.0.1
 #	- Initial Release
+#	v0.0.2
+#	- Fixed bugs
 
 # == Plans == #
 #
 #	- Add indicator that tells you that you can press buttons to reduce incoming damage for when the enemy puts you in a combo
 
-[Statedef -1]
+[Statedef +1]
 
 if !isHelper && playerno < 9 && roundstate = 2
 {
 	# Reduce Damage by 30%
-	let damage_scale = 0.7;
+	let damage_scale = 0.3;
+	let defence_to_attack = enemy, const(data.attack) / const(data.defence);
+	
 
 	# gets the oldest button held, excludes buttons that are not held.
-	let inputtime = max(max(max(max(cond(inputtime(a) > 0, inputtime(a), -9999), cond(inputtime(b) > 0, inputtime(b), -9999)),max(cond(inputtime(c) > 0, inputtime(c), -9999), cond(inputtime(x) > 0, inputtime(x), -9999))),max(max(cond(inputtime(y) > 0, inputtime(y), -9999), cond(inputtime(z) > 0, inputtime(z), -9999)),max(cond(inputtime(s) > 0, inputtime(s), -9999), cond(inputtime(U) > 0, inputtime(U), -9999)))),max(max(max(cond(inputtime(D) > 0, inputtime(D), -9999), cond(inputtime(L) > 0, inputtime(L), -9999)),max(cond(inputtime(R) > 0, inputtime(R), -9999), cond(inputtime(d) > 0, inputtime(d), -9999))),cond(inputtime(w) > 0, inputtime(w), -9999)));
+	let inputtime = max(max(max(cond(inputtime(a) > 0, inputtime(a), -9999), cond(inputtime(b) > 0, inputtime(b), -9999)),max(cond(inputtime(c) > 0, inputtime(c), -9999), cond(inputtime(x) > 0, inputtime(x), -9999))),max(max(cond(inputtime(y) > 0, inputtime(y), -9999), cond(inputtime(z) > 0, inputtime(z), -9999)),cond(inputtime(s) > 0, inputtime(s), -9999)));
 
 	if gethitvar(frame) && !gethitvar(guarded) || map(dndReduce_gethitframe) != 0
 	{
@@ -28,6 +32,7 @@ if !isHelper && playerno < 9 && roundstate = 2
 
 		if gethitvar(frame)
 		{
+			map(dndReduce_gethitdamage) := gethitvar(hitdamage);
 			map(dndReduce_gethitframe) := 0;
 		}
 		map(dndReduce_gethitframe) := (map(dndReduce_gethitframe) + 1) % 5;
@@ -37,7 +42,16 @@ if !isHelper && playerno < 9 && roundstate = 2
 	{
 		# Reduce Damage if input was detected during the gethit frame or 3 frames later
 		lifebarAction{spr: const(MsgTechnical), 0; top: 1}
+		map(dndReduce_lifedebt) := map(dndReduce_lifedebt) + (map(dndReduce_gethitdamage)*$damage_scale);
+		map(dndReduce_gethitdamage) := 0;
 		map(dndReduce_gethitframe) := 0;
-		GetHitVarSet{damage:gethitvar(damage)*$damage_scale}
 	}
+
+	if map(dndReduce_currentlife) > life && map(dndReduce_lifedebt) > 0
+	{
+		LifeAdd{value:map(dndReduce_lifedebt);absolute:1;}
+		map(dndReduce_lifedebt) := 0;
+	}
+
+	map(dndReduce_currentlife) := life;
 }
