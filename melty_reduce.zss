@@ -9,6 +9,9 @@
 #	- Initial Release
 #	v0.0.2
 #	- Fixed bugs
+#	v0.0.3
+#	- Added a 6 frame cooldown for the inputs to prevent activating the reduce mechanic while mashing / pianoing
+#	- Tweaked timing to 3 frames before, during the frame, and 1 frame after getting hit.
 
 # == Plans == #
 #
@@ -26,6 +29,16 @@ if !isHelper && playerno < 9 && roundstate = 2
 	# gets the oldest button held, excludes buttons that are not held.
 	let inputtime = max(max(max(cond(inputtime(a) > 0, inputtime(a), -9999), cond(inputtime(b) > 0, inputtime(b), -9999)),max(cond(inputtime(c) > 0, inputtime(c), -9999), cond(inputtime(x) > 0, inputtime(x), -9999))),max(max(cond(inputtime(y) > 0, inputtime(y), -9999), cond(inputtime(z) > 0, inputtime(z), -9999)),cond(inputtime(s) > 0, inputtime(s), -9999)));
 
+	if map(dndReduce_cooldown) > 0
+	{
+		map(dndReduce_cooldown) := map(dndReduce_cooldown) - 1;
+	}
+
+	if (inputtime(a) = 1 || inputtime(b) = 1 || inputtime(c) = 1 || inputtime(x) = 1 || inputtime(y) = 1 || inputtime(z) = 1 || inputtime(s) = 1) && map(dndReduce_cooldown) = 0
+	{
+		map(dndReduce_cooldown) := 6;
+	}
+
 	if gethitvar(frame) && !gethitvar(guarded) || map(dndReduce_gethitframe) != 0
 	{
 		# Track GetHit frames for 4 frames
@@ -39,12 +52,15 @@ if !isHelper && playerno < 9 && roundstate = 2
 	}
 
 	if map(dndReduce_gethitframe) > 0 && $inputtime = [1,4]
+	&& ($inputtime >= map(dndReduce_gethitframe) || ($inputtime = 1 && map(dndReduce_gethitframe) = 2))
+	&& map(dndReduce_cooldown) = 6
 	{
 		# Reduce Damage if input was detected during the gethit frame or 3 frames later
 		lifebarAction{spr: const(MsgTechnical), 0; top: 1}
 		map(dndReduce_lifedebt) := map(dndReduce_lifedebt) + (map(dndReduce_gethitdamage)*$damage_scale);
 		map(dndReduce_gethitdamage) := 0;
 		map(dndReduce_gethitframe) := 0;
+		map(dndReduce_cooldown) := 0;
 	}
 
 	if map(dndReduce_currentlife) > life && map(dndReduce_lifedebt) > 0
